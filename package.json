@@ -1,0 +1,29 @@
+{
+  "name": "epub_sc_to_tc",
+  "version": "1.0.0",
+  "description": "Translate an epub file from simplified chinese to traditional chinese",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "keywords": [
+    "translate",
+    "epub",
+    "simplified",
+    "chinese",
+    "traditional",
+    "chinese",
+    "簡",
+    "繁"
+  ],
+  "author": "jw",
+  "license": "ISC",
+  "dependencies": {
+    "adm-zip": "^0.4.13",
+    "opencc": "^1.0.5"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0"
+  }
+}
