@@ -10,15 +10,19 @@ async function convertFileFromInput() {
         let outputPath = [];
         files.forEach(file => {
             console.log(path.extname(file));
-            if(!(path.extname(file) === '.epub')) { return }
+            if (!(path.extname(file) === '.epub')) {
+                return
+            }
             const fileFullPath = `${inputFolder}/${file}`;
             const renameTo = fileFullPath.replace('.epub', '.zip');
-            fs.rename(fileFullPath, renameTo, err => { if (err) throw (err) });
+            fs.rename(fileFullPath, renameTo, err => {
+                if (err) throw (err)
+            });
             outputPath.push(renameTo)
         });
         console.log(outputPath);
         return outputPath;
-    } catch(e) {
+    } catch (e) {
         console.error(e);
         throw e;
     }
@@ -27,38 +31,60 @@ async function convertFileFromInput() {
 function promisifyReaddir(input) {
     return new Promise((resolve, reject) => {
         fs.readdir(input, (err, files) => {
-            if(err) reject(err);
+            if (err) reject(err);
             resolve(files);
         })
     })
 }
 
-function promisifyWriteFile(path, input) {
-    return new Promise ((resolve, reject) => {
-        fs.writeFile(path, input, function(err) {
-            if(err) { reject(err) }
+async function promisifyWriteFile(path, input) {
+    if (path.includes('/')) {
+        const paths = path.split('/')
+        const file = paths.splice(-1, 1)
+        const dir = paths.join('/')
+        await promisifyMakeDir(dir);
+    }
+    return new Promise((resolve, reject) => {
+        fs.writeFile(path, input, err => {
+            if (err) {
+                reject(err)
+            }
             resolve(true);
-        }); 
+        });
+    })
+}
+
+function promisifyMakeDir(dir) {
+    return new Promise((resolve, reject) => {
+        fs.mkdir(dir, {
+            recursive: true
+        }, err => {
+            if (err) reject(err)
+            resolve(true);
+        });
     })
 }
 
 function getOutputPath(fileFullPath) {
     let temp = fileFullPath.split('/');
-    return temp[temp.length - 1].replace('.zip','');
+    return temp[temp.length - 1].replace('.zip', '');
 }
 
 async function main() {
     try {
         let fileNames = await convertFileFromInput();
-        fileNames.forEach(fileName => {
+        fileNames.forEach(async fileName => {
             console.log(fileName);
-            if(!fileName.includes('.zip')) {return}
+            if (!fileName.includes('.zip')) {
+                return
+            }
             const outputPath = `./output/${getOutputPath(fileName)}`
             const zip = new AdmZip(fileName);
             // const extractTo = `${inputFolder}/temp`;
             // zip.extractAllTo(extractTo, true);
 
             const zipEntries = zip.getEntries();
+            let allPromise = [];
             zipEntries.forEach(zipEntry => {
                 if (zipEntry.entryName.includes('.xhtml')) {
                     // for (const key in zipEntry) { console.log(zipEntry[key]) }
@@ -68,22 +94,42 @@ async function main() {
                     // fs.createReadStream(zipEntry.entryName).pipe(fs.createWriteStream(`./output/${zipEntry.entryName}`));
 
                     const buffer = Buffer.from(converted, 'utf8');
-                    promisifyWriteFile(`${outputPath}/${zipEntry.entryName}`,buffer)
+                    allPromise.push(promisifyWriteFile(`${outputPath}/${zipEntry.entryName}`, buffer))
 
                 } else {
-                    fs.createReadStream(zipEntry.entryName).pipe(fs.createWriteStream(`${outputPath}/${zipEntry.entryName}`));
+                    const data = zipEntry.getData().toString('utf8');
+                    const buffer = Buffer.from(data, 'utf8');
+                    allPromise.push(promisifyWriteFile(`${outputPath}/${zipEntry.entryName}`, buffer))
+                    // fs.createReadStream(`${inputFolder}/${zipEntry.entryName}`).pipe(fs.createWriteStream(`${outputPath}/${zipEntry.entryName}`));
                 }
             });
+            await Promise.all(allPromise);
+            // const fileFullPath = `${outputPath}/${file}`;
+            // const renameTo = fileFullPath.replace('.epub', '.zip');
+            // fs.rename(fileFullPath, renameTo, err => {
+            //     if (err) throw (err)
+            // });
+            console.log(`All done for file ${fileName}`)
         })
 
-    } catch(e) {
+    } catch (e) {
         console.error(e);
     }
 }
 
+async function test() {
+    // const outputPath = `./output/test/1234123/something.txt`
+    // const converted = 'ABC DEF GJFHERQ'
+    // const buffer = Buffer.from(converted, 'utf8');
+    // await promisifyWriteFile(outputPath, buffer);
 
+    fs.createReadStream(`${inputFolder}/${zipEntry.entryName}`).pipe(fs.createWriteStream(`${outputPath}/${zipEntry.entryName}`));
+
+}
 
 // path.join(path.dirname(file), path.basename(file, path.extname(file)) + '.zip');
 // consst zip = new AdmZip('./')
-main();
+// main();
 // convertFileFromInput();
+
+main()
