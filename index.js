@@ -86,7 +86,7 @@ async function main() {
             const zipEntries = zip.getEntries();
             let allPromise = [];
             zipEntries.forEach(zipEntry => {
-                if (zipEntry.entryName.includes('.xhtml')) {
+                if (zipEntry.entryName.includes('.xhtml') || zipEntry.entryName.includes('.html')) {
                     // for (const key in zipEntry) { console.log(zipEntry[key]) }
                     const rawText = zipEntry.getData().toString('utf8');
                     const opencc = new Opencc();
